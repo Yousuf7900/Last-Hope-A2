@@ -114,7 +114,7 @@ export const loginUser = async (req: Request, res: Response) => {
         return sendResponse(res, {
             success: true,
             statusCode: 200,
-            message: "Login successfull",
+            message: "Login successful",
             data: {
                 token, user,
             }
