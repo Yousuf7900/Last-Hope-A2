@@ -123,4 +123,66 @@ export const getSingleIssue = async (req: AuthRequest, res: Response) => {
             errors: error
         })
     }
+};
+
+export const updateIssue = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { title, description, type } = req.body;
+        if (!req.user) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 401,
+                message: "Unauthorized access"
+            })
+        };
+
+        const issueResult = await pool.query(
+            `SELECT * FROM issues WHERE id=$1`, [id]
+        );
+        if (issueResult.rows.length === 0) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 404,
+                message: "Issue not found"
+            })
+        }
+
+        const issue = issueResult.rows[0];
+        const isMaintainer = req.user.role === "maintainer";
+        const isOwner = req.user.id === issue.reporter_id;
+
+        if (!isMaintainer && !isOwner) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 403,
+                message: "You are not allowed to update this issue"
+            })
+        };
+        if (!isMaintainer && issue.status !== "open") {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 500,
+                message: "Only open issues can be updated by contributor"
+            })
+        };
+
+        const updatedIssue = await pool.query(
+            `UPDATE issues SET title=COALESCE($1, title), description=COALESCE($2, description), type=COALESCE($3, type), updated_at=NOW() WHERE id=$4 RETURNING *`, [title, description, type, id]
+        );
+        return sendResponse(res, {
+            success: true,
+            statusCode: 200,
+            message: "Issue updated successfully",
+            data: updatedIssue.rows[0]
+        })
+
+    } catch (error) {
+        return sendResponse(res, {
+            success: false,
+            statusCode: 500,
+            message: "Issue update failed",
+            errors: error
+        })
+    }
 }
