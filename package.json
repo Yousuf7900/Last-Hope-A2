@@ -1,5 +1,5 @@
 {
-  "name": "devpulse-api",
+  "name": "l2a2",
   "version": "1.0.0",
   "description": "DevPulse issue tracking backend API",
   "main": "dist/server.js",
