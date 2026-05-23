@@ -43,4 +43,57 @@ export const createIssue = async (req: AuthRequest, res: Response) => {
             errors: error
         })
     }
+};
+
+export const getAllIssues = async (req: AuthRequest, res: Response) => {
+    try {
+
+        const result = await pool.query(
+            `SELECT * FROM issues ORDER BY created_at DESC`
+        );
+
+        return sendResponse(res, {
+            success: true,
+            statusCode: 200,
+            message: "Issues retrieved successfully",
+            data: result.rows
+        })
+    } catch (error) {
+        return sendResponse(res, {
+            success: false,
+            statusCode: 500,
+            message: "Failed to retrieve issues",
+            errors: error
+        })
+    }
+};
+
+export const getSingleIssue = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query(
+            `SELECT * FROM issues WHERE id=$1`, [id]
+        );
+
+        if (result.rows.length === 0) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 404,
+                message: "Issue not found"
+            })
+        }
+        return sendResponse(res, {
+            success: true,
+            statusCode: 200,
+            message: "Issue retrieved successfully",
+            data: result.rows[0]
+        })
+    } catch (error) {
+        return sendResponse(res, {
+            success: false,
+            statusCode: 500,
+            message: "Failed to retrieve issue",
+            errors: error
+        })
+    }
 }
