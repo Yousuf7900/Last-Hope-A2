@@ -86,22 +86,34 @@ export const getAllIssues = async (req: AuthRequest, res: Response) => {
 export const getSingleIssue = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const result = await pool.query(
+        const issueResult = await pool.query(
             `SELECT * FROM issues WHERE id=$1`, [id]
         );
 
-        if (result.rows.length === 0) {
+        if (issueResult.rows.length === 0) {
             return sendResponse(res, {
                 success: false,
                 statusCode: 404,
                 message: "Issue not found"
             })
         }
+
+        const issue = issueResult.rows[0];
+        const userResult = await pool.query(
+            `SELECT id, name, role FROM users WHERE id=$1`, [issue.reporter_id]
+        );
+
+        const { reporter_id, ...issueData } = issue;
+        const issueWithReporterDetails = {
+            ...issueData,
+            reporter: userResult.rows[0]
+        }
+
         return sendResponse(res, {
             success: true,
             statusCode: 200,
             message: "Issue retrieved successfully",
-            data: result.rows[0]
+            data: issueWithReporterDetails
         })
     } catch (error) {
         return sendResponse(res, {
