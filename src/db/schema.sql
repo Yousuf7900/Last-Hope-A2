@@ -16,5 +16,5 @@ CREATE TABLE IF NOT EXISTS issues(
     status VARCHAR(20) NOT NULL DEFAULT 'open',
     reporter_id INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 )

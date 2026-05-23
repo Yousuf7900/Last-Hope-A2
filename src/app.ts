@@ -1,6 +1,8 @@
 import express, { type Application, type Request, type Response } from "express";
 import cors from 'cors';
 
+import { authRoutes } from "./modules/auth/auth.routes";
+
 
 const app: Application = express();
 
@@ -13,6 +15,8 @@ app.get('/', (req: Request, res: Response) => {
         message: "API is Online"
     });
 });
+
+app.use("/api/auth", authRoutes);
 
 
 export default app;
