@@ -48,15 +48,30 @@ export const createIssue = async (req: AuthRequest, res: Response) => {
 export const getAllIssues = async (req: AuthRequest, res: Response) => {
     try {
 
-        const result = await pool.query(
+        const issueResult = await pool.query(
             `SELECT * FROM issues ORDER BY created_at DESC`
+        );
+
+        const issues = issueResult.rows;
+
+        const issuesWithReporterDetails = await Promise.all(
+            issues.map(async (issue) => {
+                const userResult = await pool.query(
+                    `SELECT id, name, role FROM users WHERE id=$1`, [issue.reporter_id]
+                );
+                const { reporter_id, ...issuedata } = issue;
+                return {
+                    ...issuedata,
+                    reporter: userResult.rows[0]
+                }
+            })
         );
 
         return sendResponse(res, {
             success: true,
             statusCode: 200,
             message: "Issues retrieved successfully",
-            data: result.rows
+            data: issuesWithReporterDetails
         })
     } catch (error) {
         return sendResponse(res, {
