@@ -185,4 +185,50 @@ export const updateIssue = async (req: AuthRequest, res: Response) => {
             errors: error
         })
     }
+};
+
+export const deleteIssue = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        if (!req.user) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 401,
+                message: "Unauthorized access"
+            })
+        }
+        if (req.user.role !== "maintainer") {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 403,
+                message: "Only maintainer can delete issue"
+            })
+        }
+
+        const issueResult = await pool.query(
+            `SELECT * FROM issues WHERE id=$1`, [id]
+        );
+        if (issueResult.rows.length === 0) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 404,
+                message: "Issue not found"
+            })
+        }
+        await pool.query(
+            `DELETE FROM issues WHERE id=$1`, [id]
+        );
+        return sendResponse(res, {
+            success: true,
+            statusCode: 200,
+            message: "Issue deleted successfully"
+        })
+    } catch (error) {
+        return sendResponse(res, {
+            success: false,
+            statusCode: 500,
+            message: "Issue delete failed",
+            errors: error
+        })
+    }
 }
