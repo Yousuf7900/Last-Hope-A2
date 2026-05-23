@@ -162,7 +162,7 @@ export const getSingleIssue = async (req: AuthRequest, res: Response) => {
 export const updateIssue = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { title, description, type } = req.body;
+        const { title, description, type, status } = req.body;
         if (!req.user) {
             return sendResponse(res, {
                 success: false,
@@ -174,6 +174,7 @@ export const updateIssue = async (req: AuthRequest, res: Response) => {
         const issueResult = await pool.query(
             `SELECT * FROM issues WHERE id=$1`, [id]
         );
+
         if (issueResult.rows.length === 0) {
             return sendResponse(res, {
                 success: false,
@@ -196,13 +197,47 @@ export const updateIssue = async (req: AuthRequest, res: Response) => {
         if (!isMaintainer && issue.status !== "open") {
             return sendResponse(res, {
                 success: false,
-                statusCode: 500,
+                statusCode: 409,
                 message: "Only open issues can be updated by contributor"
             })
         };
 
+        const allowedTypes = ["bug", "feature_request"];
+
+        const allowedStatuses = ["open", "in_progress", "resolved"];
+
+        if (type && !allowedTypes.includes(type as string)) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 400,
+                message: "Invalid issue type"
+            })
+        };
+        if (status && !allowedStatuses.includes(status as string)) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 400,
+                message: "Invalid issue status"
+            })
+        }
+
+        if (status && !isMaintainer) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 403,
+                message: "Only maintainer can update issue status"
+            })
+        };
+
         const updatedIssue = await pool.query(
-            `UPDATE issues SET title=COALESCE($1, title), description=COALESCE($2, description), type=COALESCE($3, type), updated_at=NOW() WHERE id=$4 RETURNING *`, [title, description, type, id]
+            `UPDATE issues 
+            SET title=COALESCE($1, title), 
+            description=COALESCE($2, description), 
+            type=COALESCE($3, type),
+            status=COALESCE($4, status), 
+            updated_at=NOW() 
+            WHERE id=$5 
+            RETURNING *`, [title, description, type, status, id]
         );
         return sendResponse(res, {
             success: true,
