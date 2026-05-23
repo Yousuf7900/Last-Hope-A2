@@ -47,10 +47,44 @@ export const createIssue = async (req: AuthRequest, res: Response) => {
 
 export const getAllIssues = async (req: AuthRequest, res: Response) => {
     try {
+        const { sort, type, status } = req.query;
+        const allowedTypes = ["bug", "feature_request"];
+        const allowedStatuses = ["open", "in_progress", "resolved"];
 
-        const issueResult = await pool.query(
-            `SELECT * FROM issues ORDER BY created_at DESC`
-        );
+        if (type && !allowedTypes.includes(type as string)) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 400,
+                message: "Invalid issue type"
+            })
+        }
+        if (status && !allowedStatuses.includes(status as string)) {
+            return sendResponse(res, {
+                success: false,
+                statusCode: 400,
+                message: "Invalid issue status"
+            })
+        }
+
+        let query = `SELECT * FROM issues WHERE 1 = 1`;
+
+        const values: string[] = [];
+        if (type) {
+            values.push(type as string);
+            query += ` AND type = $${values.length}`;
+        }
+        if (status) {
+            values.push(status as string);
+            query += ` AND status = $${values.length}`;
+        }
+
+        if (sort === "oldest") {
+            query += ` ORDER BY created_at ASC`;
+        } else {
+            query += ` ORDER BY created_at DESC`;
+        }
+
+        const issueResult = await pool.query(query, values);
 
         const issues = issueResult.rows;
 
@@ -59,9 +93,9 @@ export const getAllIssues = async (req: AuthRequest, res: Response) => {
                 const userResult = await pool.query(
                     `SELECT id, name, role FROM users WHERE id=$1`, [issue.reporter_id]
                 );
-                const { reporter_id, ...issuedata } = issue;
+                const { reporter_id, ...issueData } = issue;
                 return {
-                    ...issuedata,
+                    ...issueData,
                     reporter: userResult.rows[0]
                 }
             })
